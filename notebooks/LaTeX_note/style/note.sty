@@ -1,0 +1,116 @@
+% ===== packages ===== %
+\usepackage{amsmath,amsfonts,mathtools,amssymb,bm}
+\usepackage{amsthm}
+\usepackage{etoolbox}
+\usepackage{here}
+\usepackage{mdframed}
+\usepackage{tcolorbox,framed,fancybox,ascmac}
+\usepackage{okumacro}
+% \usepackage{tcolorbox}
+\usepackage{graphicx}
+\usepackage[
+  linkcolor = black,
+  colorlinks = true
+]{hyperref}
+\usepackage{enumitem,tabularray}
+\usepackage[
+  top=20truemm,
+  bottom=20truemm,
+  left=10truemm,
+  right=10truemm
+]{geometry}
+\usepackage{tikz}
+\usepackage{pgfplots}
+
+\usepgflibrary{fpu}
+\tcbuselibrary{skins,breakable,theorems}
+
+\numberwithin{equation}{section}    % 数式番号にセクション番号を反映させる
+
+% ===== new commands ===== %
+
+\newcommand{\abs}[1]{\left| #1 \right|}
+\newcommand{\norm}[1]{\left\| #1 \right\|}
+\renewcommand{\epsilon}{\varepsilon}
+
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+\newcommand{\blue}[1]{\textcolor{blue}{#1}}
+
+\renewcommand{\thefigure}{\thesection.\arabic{figure}}  % captionのナンバリングにセクション番号を反映させる
+
+% ===== new environments ===== %
+
+\theoremstyle{definition}
+\newmdtheoremenv{teigi}{定義}[section]
+\newmdtheoremenv{teiri}[teigi]{定理}
+\newmdtheoremenv{meidai}[teigi]{命題}
+\newmdtheoremenv{kei}[teigi]{系}
+\newmdtheoremenv{hodai}[teigi]{補題}
+\newmdtheoremenv{chui}[teigi]{注意}
+\newmdtheoremenv{mondai}[teigi]{問題}
+
+\newenvironment{definition}{
+  \vspace{2.5mm}
+  \begin{teigi}
+}{
+  \end{teigi}
+  \vspace{2.5mm}
+}
+\newenvironment{theorem}{
+  \vspace{2.5mm}
+  \begin{teiri}
+}{
+  \end{teiri}
+  \vspace{2.5mm}
+}
+\newenvironment{proposition}{
+  \vspace{2.5mm}
+  \begin{meidai}
+}{
+  \end{meidai}
+  \vspace{2.5mm}
+}
+\newenvironment{corollary}{
+  \vspace{2.5mm}
+  \begin{kei}
+}{
+  \end{kei}
+  \vspace{2.5mm}
+}
+\newenvironment{lemma}{
+  \vspace{2.5mm}
+  \begin{hodai}
+}{
+  \end{hodai}
+  \vspace{2.5mm}
+}
+\newenvironment{remark}{
+  \vspace{2.5mm}
+  \begin{chui}
+}{
+  \end{chui}
+  \vspace{2.5mm}
+}
+\newenvironment{question}{
+  \vspace{2.5mm}
+  \begin{mondai}
+}{
+  \end{mondai}
+  \vspace{2.5mm}
+}
+
+\newcounter{column} % カウンタのセット
+\numberwithin{column}{section}  % セクション番号も反映させる
+\newcommand{\COLUMN}{\arabic{section}.\arabic{column}}  % カウンタを表示するためのコマンドの定義
+\newenvironment{column}[1]{%%コラムの環境
+  \refstepcounter{column} % カウンタを進める
+  \begin{tcolorbox}[
+    colframe = blue,
+    colback = white,
+    title = コラム\COLUMN 「#1」,
+    fonttitle = \bfseries,
+    breakable = true
+  ]
+}{
+  \end{tcolorbox}
+}

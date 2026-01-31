@@ -1,0 +1,121 @@
+\documentclass[dvipdfmx, fontsize = 10.5pt]{jlreq}
+\usepackage{amsmath, amssymb, bm}
+\usepackage{mathtools}
+\usepackage{url}
+
+% 定理環境などの設定（必要に応じて）
+\newtheorem{definition}{定義}
+\newtheorem{theorem}{定理}
+
+\title{ニューラルネットワークにおけるAffineレイヤの逆伝播導出\\
+\large 成分計算と行列微分の2つの視点から}
+\author{Math \& AI Note}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{はじめに：問題の設定}
+本資料では、ニューラルネットワークの全結合層（Affineレイヤ）における誤差逆伝播法の導出を行う。
+順伝播の計算式は以下の通り定義する。
+
+\begin{equation}
+\bm{Y} = \bm{X}\bm{W} + \bm{B}
+\end{equation}
+
+ここで、各変数の形状（シェイプ）は以下の通りとする。
+\begin{itemize}
+    \item 入力 $\bm{X}$: $1 \times n$ の行ベクトル ($x_1, \dots, x_n$)
+    \item 重み $\bm{W}$: $n \times m$ の行列 ($w_{ij}$)
+    \item バイアス $\bm{B}$: $1 \times m$ の行ベクトル ($b_1, \dots, b_m$)
+    \item 出力 $\bm{Y}$: $1 \times m$ の行ベクトル ($y_1, \dots, y_m$)
+\end{itemize}
+
+損失関数を $L$ とし、出力層からの勾配 $\displaystyle\frac{\partial L}{\partial \bm{Y}}$ は既知であるとする。このとき、入力 $\bm{X}$ および重み $\bm{W}$ に対する勾配 $\displaystyle\frac{\partial L}{\partial \bm{X}}, \frac{\partial L}{\partial \bm{W}}$ を導出する。
+
+\section{アプローチ1：成分ごとの偏微分による導出}
+多変数関数の連鎖律（チェーンルール）を用い、成分ごとに計算してから行列の形に復元する方法である。
+
+\subsection{入力 $\bm{X}$ に関する微分}
+順伝播の第 $j$ 成分 $y_j$ は以下で表される。
+\begin{equation}
+y_j = \sum_{k=1}^{n} x_k w_{kj} + b_j
+\end{equation}
+
+連鎖律より、入力の第 $i$ 成分 $x_i$ に対する勾配は、
+\begin{equation}
+\frac{\partial L}{\partial x_i} = \sum_{j=1}^{m} \frac{\partial L}{\partial y_j} \frac{\partial y_j}{\partial x_i}
+\end{equation}
+ここで、$\displaystyle\frac{\partial y_j}{\partial x_i} = w_{ij}$ であるため、
+\begin{equation}
+\frac{\partial L}{\partial x_i} = \sum_{j=1}^{m} \frac{\partial L}{\partial y_j} w_{ij}
+\end{equation}
+この総和は、行ベクトル $\displaystyle\frac{\partial L}{\partial \bm{Y}}$ と 行列 $\bm{W}$ の転置 $\bm{W}^T$ の積の第 $i$ 成分に他ならない。したがって、
+\begin{equation}
+\frac{\partial L}{\partial \bm{X}} = \frac{\partial L}{\partial \bm{Y}} \bm{W}^T
+\end{equation}
+となる。
+
+\subsection{重み $\bm{W}$ に関する微分}
+重みの $(i, j)$ 成分 $w_{ij}$ は $y_j$ にのみ影響を与える。よって連鎖律は、
+\begin{equation}
+\frac{\partial L}{\partial w_{ij}} = \frac{\partial L}{\partial y_j} \frac{\partial y_j}{\partial w_{ij}} = \frac{\partial L}{\partial y_j} x_i
+\end{equation}
+となる。これをすべての $i, j$ について並べると、$(n \times 1)$ の縦ベクトル $\bm{X}^T$ と $(1 \times m)$ の横ベクトル $\displaystyle\frac{\partial L}{\partial \bm{Y}}$ の積となる。
+\begin{equation}
+\frac{\partial L}{\partial \bm{W}} = \bm{X}^T \frac{\partial L}{\partial \bm{Y}}
+\end{equation}
+
+\section{アプローチ2：行列微分（全微分とトレース）による導出}
+行列計算における勾配を、全微分形式の線形近似係数として定義する方法である。成分計算を行わず、代数的な操作のみで導出が可能である。
+
+\subsection{行列微分の定義}
+スカラー関数 $f(\bm{X})$ の行列 $\bm{X}$ による勾配 $\displaystyle\frac{\partial f}{\partial \bm{X}}$ を、以下の全微分 $df$ を満たす行列 $\bm{A}$ として定義する。
+\begin{equation}
+df = \text{tr}\left( \bm{A}^T d\bm{X} \right) \quad \iff \quad \frac{\partial f}{\partial \bm{X}} = \bm{A}
+\end{equation}
+ここで $\text{tr}(\cdot)$ はトレース（対角和）を表す。
+
+\subsection{導出}
+損失関数 $L$ の全微分は、出力勾配 $\bm{G} = \frac{\partial L}{\partial \bm{Y}}$ を用いて以下のように書ける。
+\begin{equation}
+dL = \text{tr}\left( \bm{G}^T d\bm{Y} \right)
+\end{equation}
+
+ここで、順伝播式 $\bm{Y} = \bm{X}\bm{W} + \bm{B}$ の全微分をとる。
+\begin{equation}
+d\bm{Y} = (d\bm{X})\bm{W} + \bm{X}(d\bm{W}) + d\bm{B}
+\end{equation}
+
+\subsubsection{1. $\bm{X}$ による勾配}
+$\bm{W}, \bm{B}$ を固定し、$d\bm{Y} = (d\bm{X})\bm{W}$ を代入する。
+\begin{align}
+dL &= \text{tr}\left( \bm{G}^T (d\bm{X})\bm{W} \right) \\
+   &= \text{tr}\left( \bm{W}\bm{G}^T d\bm{X} \right) \quad (\because \text{トレースの巡回性 } \text{tr}(\bm{A}\bm{B}) = \text{tr}(\bm{B}\bm{A})) \\
+   &= \text{tr}\left( (\bm{G}\bm{W}^T)^T d\bm{X} \right)
+\end{align}
+定義と比較して、$\bm{A} = \bm{G}\bm{W}^T$ となるため、
+\begin{equation}
+\frac{\partial L}{\partial \bm{X}} = \frac{\partial L}{\partial \bm{Y}} \bm{W}^T
+\end{equation}
+
+\subsubsection{2. $\bm{W}$ による勾配}
+$\bm{X}, \bm{B}$ を固定し、$d\bm{Y} = \bm{X}(d\bm{W})$ を代入する。
+\begin{align}
+dL &= \text{tr}\left( \bm{G}^T \bm{X} (d\bm{W}) \right) \\
+   &= \text{tr}\left( \bm{X}^T \bm{G} (d\bm{W}) \right)^T \quad (\text{スカラーの転置は不変}) \\
+   &= \text{tr}\left( (\bm{X}^T \bm{G})^T d\bm{W} \right)
+\end{align}
+定義と比較して、
+\begin{equation}
+\frac{\partial L}{\partial \bm{W}} = \bm{X}^T \frac{\partial L}{\partial \bm{Y}}
+\end{equation}
+
+\section{まとめ}
+どちらのアプローチを用いても、結果は一致する。
+\begin{itemize}
+    \item 成分計算アプローチ：直感的であり、微分の意味（感度解析）を理解しやすい。
+    \item 行列微分アプローチ：記号操作のみで完結し、複雑な計算やテンソル計算において見通しが良い。
+\end{itemize}
+
+\end{document}
