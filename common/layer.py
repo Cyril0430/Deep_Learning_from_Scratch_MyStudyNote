@@ -1,4 +1,5 @@
 import numpy as np
+from common.function import softmax, cross_entropy_error
 
 class Relu:
     def __init__(self):
@@ -84,3 +85,62 @@ class Affine:       # 教科書の模範解答（四次元のデータも考慮�
         self.db = np.sum(dout, axis = 0)
 
         return dx   # ほう、dxのみ出力するのか、そうか、xだけがデータに直接関連するからか。Wやbの変化を扱う意義は無いからか。
+
+# まずは自分で実装してみよう（何も見ずに）。
+class mySoftmaxWithLoss:    
+    def __init__(self, a):
+        self.a = a          # 模範解答では保存していなかった。そもそも入力値a（模範解答ではx）は逆伝播の際に使用しないので、インスタンス変数として保存する必要が無いんだね。
+        self.y = None
+        self.t = None
+
+    def forward(self, t):   # 教師データだけ入れる関数なんて、少し考えづらいんじゃない？「必要なデータを入れて初めて動く」っていう感覚があるから。
+        self.y = softmax(self.a)
+        self.t = t
+
+        L = cross_entropy_error(self.y, self.t)
+        return L
+    
+    def backward(self):     # どうせ損失関数の勾配は1だから、入れる必要がないと思い、インスタンス変数以外からの引数は指定しなかった。
+        return self.y - self.t
+
+# 模範解答
+class SoftmaxWithLoss:      
+    def __init__(self):
+        self.loss = None    # 損失（なぜ、損失関数の値を保存しておくんだろう？）
+        self.y = None       # softmaxの出力
+        self.t = None       # 教師データ（one-hot vector）
+
+    def forward(self, x, t):    # xが形状(N, m)のとき、
+        self.t = t              # one-hotなので、tの形状も(N, m)である必要がある。
+        self.y = softmax(x)     # self.yの形状は(N, m)になる。つまり各バッチに対し、正解である確率がm個格納されることになる。
+        self.loss = cross_entropy_error(self.y, self.t) # 1次元のデータがself.lossに入る
+
+        return self.loss
+    
+    def backward(self, dout = 1):   # なるほど、既定値を1にしておくのね。柔軟な対応が可能になるのか。
+        batch_size = self.t.shape[0]        # バッチサイズを保存（コメントアウトの例だとbatch_sizeは「N」になる。
+        dx = (self.y - self.t) / batch_size # なんでバッチサイズで割るの？
+                                            # →ここで用いた交差エントロピー誤差が「誤差の総和をバッチサイズの分だけ割る」ことで定義されていたため、`self.y - self.t`は「誤差の総和」になってしまう。そこでその誤差の総和をバッチサイズで割ることで、順伝播だけでなく逆伝播においても総和の誤差勾配の平均を伝えることになり、数学的に等価になる。
+
+        return dx
+
+# なんでバッチサイズで割るのか？という疑問について
+# 数理的な理由は、ノートに書いた。
+# 2. 学習の安定性（直感的な理由）
+# もしバッチサイズで割らなかった場合、**「バッチサイズを変えると学習率も変えなければならなくなる」**という不便なことになります。
+
+# 例えば、バッチサイズが10個の時と、100個の時を比べてみましょう。
+
+# 割らない場合（総和）:
+
+# バッチ10個の勾配の強さ： 約10個分
+
+# バッチ100個の勾配の強さ： 約100個分（10倍になってしまう！）
+
+# → データ量が増えると勾配が巨大になり、パラメータが一気に更新されすぎて学習が発散（オーバーシュート）してしまいます。→学習率を変える必要がある。
+
+# 割る場合（平均）：
+
+# バッチ10個でも100個でも、「データ1個あたりの勾配の強さ」に正規化されます。
+
+# → バッチサイズを変えても、勾配の大きさの尺度が変わらないため、同じ学習率（Learning Rate）を使って安定して学習できます。
