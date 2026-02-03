@@ -19,6 +19,7 @@ class TwoLayerNet:
         
         # レイヤの生成
         self.layers = OrderedDict()         # 順序付きディクショナリ型の空データを用意
+        # Python3.7以降では、通常のディクショナリ型にも順序が付いているが、今回の実装ではそれ以前のPythonでも実行できるような親切設計になっている。
         self.layers["Affine1"] = \
             Affine(self.params["W1"], self.params["b1"])
         self.layers["Relu1"] = Relu()
