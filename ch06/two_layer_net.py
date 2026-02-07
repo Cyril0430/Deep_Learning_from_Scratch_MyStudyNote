@@ -1,3 +1,4 @@
+# L2正則化項を適用
 import sys, os
 sys.path.append(os.pardir)
 import numpy as np
@@ -7,7 +8,7 @@ from collections import OrderedDict
 
 class TwoLayerNet:
 
-    def __init__(self, input_size, hidden_size, output_size, weight_init_std = 0.01):
+    def __init__(self, input_size, hidden_size, output_size, weight_init_std = 0.01, weight_decay_lambda = 0.1):
         # 重みの初期化
         self.params = {}
         self.params["W1"] = weight_init_std * \
@@ -16,6 +17,7 @@ class TwoLayerNet:
         self.params["W2"] = weight_init_std * \
                             np.random.randn(hidden_size, output_size)
         self.params["b2"] = np.zeros(output_size)
+        self.weight_decay_lambda = weight_decay_lambda
         
         # レイヤの生成
         self.layers = OrderedDict()         # 順序付きディクショナリ型の空データを用意
@@ -38,7 +40,12 @@ class TwoLayerNet:
     # x:入力データ, t:教師データ
     def loss(self, x, t):
         y = self.predict(x)
-        return self.lastLayer.forward(y, t)     # 「ソフトマックス関数からの損失関数の出力」のフォワード処理（メソッド）を呼び出しているのか。
+            #   + 0.5*self.weight_decay_lambda*(self.params["W1"]**2 + self.params["W2"]**2)  # 正則化項を加算
+        loss_val = self.lastLayer.forward(y, t)
+        weight_decay = 0
+        weight_decay += 0.5*self.weight_decay_lambda * np.sum(self.params["W1"]**2)
+        weight_decay += 0.5*self.weight_decay_lambda * np.sum(self.params["W2"]**2)
+        return loss_val + weight_decay    # 「ソフトマックス関数からの損失関数の出力」のフォワード処理（メソッド）を呼び出しているのか。
         # もしここで、mySoftmaxWithLossをlatsLayerにインスタンス化していたら、TwoLayerNetのインスタンス変数を作るときに入力値を代入しなければならないのか。そうすると、TwoLayerNetの各メンバメソッド
     
     def accuracy(self, x, t):
@@ -81,9 +88,11 @@ class TwoLayerNet:
         
         # 設定
         grads = {}
-        grads["W1"] = self.layers["Affine1"].dW     # ???
+        grads["W1"] = self.layers["Affine1"].dW \
+            + self.weight_decay_lambda*(self.params["W1"])    # ???
         grads["b1"] = self.layers["Affine1"].db     # あ！これはインスタンス`self.layers`のインスタンス変数`db`のことか！
-        grads["W2"] = self.layers["Affine2"].dW     # つまりここは、self.layersの「"Affine2"」のデータ、つまり「Affine(self.params["W2"], self.params["b2"])」というインスタンスが入っている（←これは正解 by AI）。そのインスタンスの「dW」というインスタンス変数（←これも正解 by AI）、つまり「self.params["W2"]」が`grads["W2"]`（←ここが間違い！ by AI)）というディクショナリ型データに格納される。
+        grads["W2"] = self.layers["Affine2"].dW \
+            + self.weight_decay_lambda*(self.params["W2"])    # つまりここは、self.layersの「"Affine2"」のデータ、つまり「Affine(self.params["W2"], self.params["b2"])」というインスタンスが入っている（←これは正解 by AI）。そのインスタンスの「dW」というインスタンス変数（←これも正解 by AI）、つまり「self.params["W2"]」が`grads["W2"]`（←ここが間違い！ by AI)）というディクショナリ型データに格納される。
 
         # 間違っているところの修正：「self.params["W2"]」が`grads["W2"]`というディクショナリ型データに格納されるのではなく、Affineのインスタンス変数。TwoLayerNetではなく、Affineのインスタンス変数が格納される！
         grads["b2"] = self.layers["Affine2"].db     # ここは`self.layers["Affine2"].db`ではなく、`self.params["b2"]`にしてもよいのでは？
