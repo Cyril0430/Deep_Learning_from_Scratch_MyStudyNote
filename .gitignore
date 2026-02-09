@@ -1,6 +1,6 @@
 *.pkl
 *.bat
-/dataset/
+/*/dataset/
 .ipynb_checkpoints
 *.code-workspace
 *.aux
