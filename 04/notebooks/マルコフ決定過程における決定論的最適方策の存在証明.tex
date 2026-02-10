@@ -1,0 +1,134 @@
+\documentclass[paper=a4, fontsize=11pt]{jlreq}
+
+\usepackage{amsmath, amssymb, amsthm, mathtools}
+\usepackage{bm}
+\usepackage[
+  colorlinks = true,
+  linkcolor = black,
+]{hyperref}
+
+% 定理環境の定義
+\theoremstyle{definition}
+\newtheorem{definition}{定義}[section]
+\theoremstyle{plain}
+\newtheorem{theorem}{定理}[section]
+\newtheorem{lemma}[theorem]{補題}
+\newtheorem{proposition}[theorem]{命題}
+\theoremstyle{remark}
+\newtheorem*{remark}{注釈}
+
+% 独自のコマンド定義
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\maxop}{max}
+
+\title{マルコフ決定過程における決定論的最適方策の存在証明}
+\author{Gemini AI}
+\date{\today}
+\begin{abstract}
+  この資料の査読（fact check）は実施していないので、参考程度にとどめよ。
+\end{abstract}
+
+\begin{document}
+
+\maketitle
+
+\section{序論}
+本稿では、割引無限ホライズン・マルコフ決定過程（Infinite Horizon Discounted MDP）において、決定論的（deterministic）な最適方策が少なくとも一つ存在することを証明する。証明の主軸として、ベルマン最適作用素がバナッハ空間上の縮小写像であることを利用し、バナッハの不動点定理を適用するアプローチをとる。
+
+\section{準備：定義と記法}
+
+\begin{definition}[マルコフ決定過程]
+マルコフ決定過程（MDP）は、以下の5つ組 $(S, A, P, R, \gamma)$ で定義される。
+\begin{itemize}
+    \item $S$: 状態集合（有限集合とする）
+    \item $A$: 行動集合（有限集合とする）
+    \item $P: S \times A \times S \to [0, 1]$: 遷移確率関数。$P(s'|s, a)$ は状態 $s$ で行動 $a$ をとった時に状態 $s'$ へ遷移する確率を表す。
+    \item $R: S \times A \to \R$: 報酬関数（有界とする）。
+    \item $\gamma \in [0, 1)$: 割引率。
+\end{itemize}
+\end{definition}
+
+\begin{definition}[価値関数とベルマンノルム]
+状態集合 $S$ 上の実数値関数全体（価値関数の集合）を $\mathcal{V} = \{v | v: S \to \R\}$ とする。$\mathcal{V}$ はベクトル空間であり、以下の最大値ノルム（sup-norm）を導入することでバナッハ空間（完備ノルム空間）となる。
+\begin{equation}
+    \|v\|_\infty = \max_{s \in S} |v(s)|
+\end{equation}
+\end{definition}
+
+\begin{definition}[ベルマン最適作用素]
+任意の価値関数 $v \in \mathcal{V}$ に対して、ベルマン最適作用素 $\mathcal{T}^*: \mathcal{V} \to \mathcal{V}$ を以下のように定義する。
+\begin{equation}
+    (\mathcal{T}^* v)(s) = \max_{a \in A} \left[ R(s, a) + \gamma \sum_{s' \in S} P(s'|s, a) v(s') \right]
+\end{equation}
+\end{definition}
+
+\section{主定理の証明}
+
+まず、ベルマン最適作用素が縮小写像であることを示す。
+
+\begin{lemma}[縮小写像性]
+ベルマン最適作用素 $\mathcal{T}^*$ は、最大値ノルムに関して係数 $\gamma$ の縮小写像である。すなわち、任意の $u, v \in \mathcal{V}$ に対して以下が成り立つ。
+\begin{equation}
+    \|\mathcal{T}^* u - \mathcal{T}^* v\|_\infty \le \gamma \|u - v\|_\infty
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+任意の $s \in S$ を固定する。
+また、表記簡略化のため、$Q_v(s, a) = R(s, a) + \gamma \sum_{s'} P(s'|s, a) v(s')$ と置く。
+\begin{align*}
+    |(\mathcal{T}^* u)(s) - (\mathcal{T}^* v)(s)| 
+    &= \left| \max_{a \in A} Q_u(s, a) - \max_{a' \in A} Q_v(s, a') \right| \\
+    &\le \max_{a \in A} |Q_u(s, a) - Q_v(s, a)| \quad (\because |\max f - \max g| \le \max |f - g|) \\
+    &= \max_{a \in A} \left| \gamma \sum_{s' \in S} P(s'|s, a) (u(s') - v(s')) \right| \\
+    &= \gamma \max_{a \in A} \left| \sum_{s' \in S} P(s'|s, a) (u(s') - v(s')) \right| \\
+    &\le \gamma \max_{a \in A} \sum_{s' \in S} P(s'|s, a) |u(s') - v(s')| \\
+    &\le \gamma \max_{a \in A} \sum_{s' \in S} P(s'|s, a) \|u - v\|_\infty \\
+    &= \gamma \|u - v\|_\infty \sum_{s' \in S} P(s'|s, a) \\
+    &= \gamma \|u - v\|_\infty
+\end{align*}
+これがすべての $s$ で成り立つため、最大値ノルムをとることで $\|\mathcal{T}^* u - \mathcal{T}^* v\|_\infty \le \gamma \|u - v\|_\infty$ が示された。
+\end{proof}
+
+\begin{theorem}[最適決定論的方策の存在]
+割引無限ホライズンMDPにおいて、
+\begin{enumerate}
+    \item 最適価値関数 $V^*$ は一意に存在する。
+    \item $V^*$ に対して貪欲な（greedy）決定論的方策 $\pi^*$ は最適方策である。すなわち $V^{\pi^*} = V^*$。
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+\textbf{1. 最適価値関数の存在と一意性} \\
+$\mathcal{V}$ はバナッハ空間であり、補題1より $\mathcal{T}^*$ は縮小写像である。バナッハの不動点定理（Banach Fixed Point Theorem）により、$\mathcal{T}^* v = v$ を満たす不動点 $V^* \in \mathcal{V}$ がただ一つ存在する。これが最適価値関数である。
+\begin{equation}
+    V^*(s) = \max_{a \in A} \left[ R(s, a) + \gamma \sum_{s' \in S} P(s'|s, a) V^*(s') \right] \label{eq:optimality}
+\end{equation}
+
+\textbf{2. 決定論的方策の構成と最適性} \\
+各状態 $s$ において、式(\ref{eq:optimality})の右辺を最大化する行動 $a$ を選択する決定論的方策 $\pi^*$ を構成する。
+\begin{equation}
+    \pi^*(s) \in \argmax_{a \in A} \left[ R(s, a) + \gamma \sum_{s' \in S} P(s'|s, a) V^*(s') \right]
+\end{equation}
+この方策 $\pi^*$ に対するベルマン作用素 $\mathcal{T}^{\pi^*}$ を考えると、$\pi^*$ の定義により、任意の $s$ で以下の等式が成り立つ。
+\begin{equation}
+    (\mathcal{T}^{\pi^*} V^*)(s) = R(s, \pi^*(s)) + \gamma \sum_{s'} P(s'|s, \pi^*(s)) V^*(s') = (\mathcal{T}^* V^*)(s)
+\end{equation}
+$V^*$ は $\mathcal{T}^*$ の不動点であるから、$(\mathcal{T}^* V^*) = V^*$ である。
+したがって、
+\begin{equation}
+    \mathcal{T}^{\pi^*} V^* = V^*
+\end{equation}
+となる。これは、$V^*$ が方策 $\pi^*$ のベルマン方程式の解であることを意味する。
+方策固定時のベルマン作用素 $\mathcal{T}^{\pi^*}$ もまた縮小写像であり、その不動点（すなわち方策 $\pi^*$ の価値関数 $V^{\pi^*}$）は一意である。
+よって、$V^{\pi^*} = V^*$ が成立する。
+
+以上より、決定論的方策 $\pi^*$ は最適価値関数 $V^*$ を達成するため、$\pi^*$ は最適方策である。
+\end{proof}
+
+\section{結論}
+本証明により、割引MDPにおいては、確率的方策を考慮に入れたとしても、決定論的な最適方策を常に構成可能であることが示された。これは、強化学習アルゴリズム（例：Q学習）が決定論的な最適行動を探索することの理論的正当性を保証するものである。
+
+\end{document}
