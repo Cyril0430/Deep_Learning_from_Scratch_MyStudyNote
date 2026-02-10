@@ -1,0 +1,173 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{mymath}[2024/10/27]
+\usepackage{amsmath,amsfonts,mathtools,amssymb,bm}
+\usepackage{amsthm}
+\usepackage{etoolbox}
+\usepackage{here}
+\usepackage{mdframed}
+\usepackage{tcolorbox,framed,fancybox,ascmac}
+\usepackage{okumacro}
+% \usepackage{tcolorbox}
+\usepackage{graphicx}
+\usepackage[
+  linkcolor = black,
+  colorlinks = true
+]{hyperref}
+\usepackage{enumitem,tabularray}
+\usepackage[
+  top=20truemm,
+  bottom=20truemm,
+  left=10truemm,
+  right=10truemm
+]{geometry}
+\usepackage{tikz}
+\usepackage{pgfplots}
+
+\usepgflibrary{fpu}
+\tcbuselibrary{skins,breakable,theorems}
+% \usepackage{lineno}
+% \linenumbers
+
+%%%%% 数式番号にセクション番号を反映さえる %%%%%
+
+\numberwithin{equation}{section}
+
+%%%%% 定義や定理環境の設定 %%%%%
+
+\theoremstyle{definition}
+\newmdtheoremenv{teigi}{定義}[section]
+\newmdtheoremenv{teiri}[teigi]{定理}
+\newmdtheoremenv{meidai}[teigi]{命題}
+\newmdtheoremenv{kei}[teigi]{系}
+\newmdtheoremenv{hodai}[teigi]{補題}
+\newmdtheoremenv{chui}[teigi]{注意}
+\newmdtheoremenv{mondai}[teigi]{問題}
+
+% Define spacing before and after theorem environment
+
+% \preto\definition{\vspace{1em}}
+% \appto\definition{\vspace{1em}}
+% \preto\theorem{\vspace{1em}}
+% \appto\theorem{\vspace{1em}}
+% \preto\prop{\vspace{1em}}
+% \appto\prop{\vspace{1em}}
+% \preto\coro{\vspace{1em}}
+% \appto\coro{\vspace{1em}}
+% \preto\lemma{\vspace{1em}}
+% \appto\lemma{\vspace{1em}}
+
+\newenvironment{definition}{
+  \vspace{2.5mm}
+  \begin{teigi}
+}{
+  \end{teigi}
+  \vspace{2.5mm}
+}
+\newenvironment{theorem}{
+  \vspace{2.5mm}
+  \begin{teiri}
+}{
+  \end{teiri}
+  \vspace{2.5mm}
+}
+\newenvironment{proposition}{
+  \vspace{2.5mm}
+  \begin{meidai}
+}{
+  \end{meidai}
+  \vspace{2.5mm}
+}
+\newenvironment{corollary}{
+  \vspace{2.5mm}
+  \begin{kei}
+}{
+  \end{kei}
+  \vspace{2.5mm}
+}
+\newenvironment{lemma}{
+  \vspace{2.5mm}
+  \begin{hodai}
+}{
+  \end{hodai}
+  \vspace{2.5mm}
+}
+\newenvironment{remark}{
+  \vspace{2.5mm}
+  \begin{chui}
+}{
+  \end{chui}
+  \vspace{2.5mm}
+}
+\newenvironment{question}{
+  \vspace{2.5mm}
+  \begin{mondai}
+}{
+  \end{mondai}
+  \vspace{2.5mm}
+}
+
+%%%%% 記号の定義・再定義 %%%%%
+
+\renewcommand{\epsilon}{\varepsilon}
+% \renewcommand{\mid}{\mathrel{}\middle|\mathrel{}}
+\newcommand{\suchthat}{\ s.t.\ }
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\doubleprime}{{\prime\prime}}
+\newcommand{\schwartz}{\mathcal{S}(\mathbb{R})} %シュワルツ空間の記号の定義
+\newcommand{\EliasTheorem}[2]{Stein \& Shakarchi (2007); #1#2}  % 教科書の定理とその番号を引用形式で表示する
+\newcommand{\EliasTheoremBraced}[2]{（Stein \& Shakarchi, 2007）；#1#2}
+\newcommand{\Elias}{Stein \& Shakarchi (2007)}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert }
+
+%%%%% 環境の定義・再定義 %%%%%
+
+\newenvironment{bluebox}[1]{%%可愛らしい青色の枠
+  \begin{tcolorbox}[
+    colframe = blue,
+    colback = white,
+    title = #1,
+    fonttitle = \bfseries,
+    breakable = true
+  ]
+}{
+  \end{tcolorbox}
+}
+
+% \newcounter{e}
+% \numberwithin{e}{section}
+% \setcounter{e}{0}
+% \newcommand{\ex}{\arabic{section}.\arabic{e}}
+\newcommand{\ex}{\arabic{section}.\arabic{teigi}}
+\newenvironment{example}{%%例のための枠
+  \refstepcounter{teigi}  % カウンタを進める
+  \begin{itembox}[l]{例 \ex}  %カウンタの表示
+}{
+  \end{itembox}
+}
+
+\newcounter{column} % カウンタのセット
+\numberwithin{column}{section}  % セクション番号も反映させる
+\newcommand{\COLUMN}{\arabic{section}.\arabic{column}}  % カウンタを表示するためのコマンドの定義
+\newenvironment{column}[1]{%%コラムの環境
+  \refstepcounter{column} % カウンタを進める
+  \begin{tcolorbox}[
+    colframe = blue,
+    colback = white,
+    title = コラム\COLUMN 「#1」,
+    fonttitle = \bfseries,
+    breakable = true
+  ]
+}{
+  \end{tcolorbox}
+}
+
+%%%%% その他コマンドの定義・再定義 %%%%%
+
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+\newcommand{\blue}[1]{\textcolor{blue}{#1}}
+
+%%%%% ナンバリングの定義・再定義 %%%%%
+
+\renewcommand{\thefigure}{\thesection.\arabic{figure}}  % captionのナンバリングに章番号を反映させる。
+
+% \renewcommand{\thefootnote}{\arabic{footnote}}
