@@ -1,1 +1,40 @@
-$\displaystyle \mathbb{E}_{\pi}\left[G_t \mid S_t = s\right]$について考える。
+% $\displaystyle \mathbb{E}_{\pi}\left[G_t \mid S_t = s\right]$について考える。
+
+まずは、時刻の取り扱いについて定義する。
+\begin{definition}
+  時刻$t$における状態を$S_t$と表し、同時刻のその状態での行動を$A_t$と表す。またその行動によって得られた報酬を$R_t$と表すことにする。
+\end{definition}
+
+\begin{definition}
+  次のような定義を与える。
+  \begin{itemize}[itemsep = 2mm]
+    \item 時刻$t$での状態$s\ (S_t = s)$から行動$a\ (A_t = a)$が選ばれる確率を\textbf{方策}といい、$\pi(s \mid a)$と表す。
+    \item ある状態$s$から行動$a$によって次の状態$s'$に遷移する確率を\textbf{状態遷移確率}といい、$p(s' \mid s, a)$と表す。
+    \item 状態$s$から行動$a$をとり、次の状態$s'$に遷移した際に得られる報酬を$r(s, a, s')$と表す。
+    \item 収益$G_t$とは、時刻$t$において、その後で得られる全ての報酬の価値を表したものである。
+    \begin{equation*}
+      G_t = \sum_{k = t}^\infty \gamma^{k - t}R_k,\ \gamma \in \left.\left[ 0, 1\right.\right)
+    \end{equation*}
+  \end{itemize}
+\end{definition}
+
+\begin{definition}[状態価値関数]
+  \textbf{状態価値関数}$v_\pi(s)$とは、方策を$\pi$とし、時刻$t$における状態が$s$であるときに、その後の行動や遷移する状態のすべてを加味した際の収益の平均（期待値）のことである。
+
+  すなわち、
+  \begin{equation*}
+    v_\pi(s) = \mathbb{E}_\pi\left(G_t \mid S_t = s\right)
+  \end{equation*}
+  である。
+\end{definition}
+
+時刻$t$での状態価値関数$v_\pi(s)$からある行動によって遷移し、時刻$t + 1$での状態価値関数を$v_\pi(s')$とする。このとき、次のような方程式が成り立つ。
+
+% 面倒なので書くのやめた
+% \begin{theorem}[状態価値関数のベルマン方程式]
+%   \begin{equation*}
+%     v_\pi(s)
+%     =
+%     \sum_{s'}\sum_{a}
+%   \end{equation*}
+% \end{theorem}
