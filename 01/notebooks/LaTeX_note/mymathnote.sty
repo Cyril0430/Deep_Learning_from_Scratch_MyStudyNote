@@ -1,0 +1,48 @@
+% mymathnote.sty
+\ProvidesPackage{mymathnote}
+
+% --- 基本パッケージ ---
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{mathtools}
+\usepackage{bm}           % ベクトル用
+\usepackage{physics}      % 偏微分 \pdv や ノルム \norm など
+\usepackage{listings}     % コード掲載用
+
+% --- 図形・グラフ描画 (TikZ) ---
+\usepackage{tikz}
+% 必要なライブラリを網羅的に読み込みます
+\usetikzlibrary{
+    positioning,
+    arrows.meta,
+    calc,
+    shapes,
+    graphs,
+    quotes,
+    chains,
+    automata,      % マルコフ過程などの状態遷移図用
+    fit,
+    backgrounds,
+    scopes
+}
+
+% --- ノート・注釈用ボックス (tcolorbox) ---
+\usepackage[most]{tcolorbox}
+
+% 森口さんの「気づき/コメント」用のボックス
+% 使用法: \begin{mynote}{タイトル} ... \end{mynote}
+\newtcolorbox{mynote}[1][Note]{
+    colback=yellow!5!white,
+    colframe=orange!70!white,
+    fonttitle=\bfseries,
+    title=#1,
+    sharp corners=south,
+    boxrule=0.5mm
+}
+
+% 定理・定義用のボックス（必要であれば）
+\newtcolorbox{definition}[1][Definition]{
+    colback=blue!5!white,
+    colframe=blue!60!white,
+    fonttitle=\bfseries,
+    title=#1
+}
