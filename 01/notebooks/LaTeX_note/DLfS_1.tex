@@ -1,0 +1,259 @@
+\documentclass[fontsize = 10.5pt]{jlreq}
+\usepackage{mymathnote}
+
+\begin{document}
+
+\section{Softmax-with-Loss レイヤを追う}
+
+Softmax関数への入力を $\bm{X}: (N, m)$ と仮定する。（バッチサイズが $N$、各データに $m$ 個の値が格納）。
+
+\[
+\bm{Y} = \text{softmax}(\bm{X}) \implies \bm{Y}: (N, m)
+\]
+
+教師データ $\bm{T}$ の形状は $(N, m)$ となる必要があるので、交差エントロピー誤差 $L$ は以下のようになる。
+
+\[
+L = \text{cross\_entropy\_error}(\bm{Y}, \bm{T})
+\]
+
+\subsection*{One-hot vector の $\bm{T}$}
+\[
+\bm{T} = \mqty(t_{11} & \cdots & t_{1m} \\ \vdots & \ddots & \vdots \\ t_{N1} & \cdots & t_{Nm})
+\]
+\[
+(\bm{T})_{ij} = 
+\begin{cases} 
+1 & (i \text{番目のデータの正解が} j-1 \text{のとき}) \\
+0 & (\text{otherwise})
+\end{cases}
+\]
+
+\subsection*{実装上の注意：`cross\_entropy\_error` 関数の内部}
+
+
+% \begin{lstlisting}[language=Python]
+% if t.size == y.size:
+%     t = t.argmax(axis=1)
+% \end{lstlisting}
+
+\begin{mynote}{疑問：なぜ index に変換するのか？}
+これによって $\bm{t}$ が one-hot から正解ラベルのインデックスになるのはなぜか？
+
+$\Rightarrow$ そもそも、まず $\bm{t}$ と $\bm{y}$ の形状が等しいときは、$\bm{t}$ が one-hot である可能性がある（$\bm{y}$ が $(1, m)$ という形状のときは、$\bm{t}$ がどちらか分からないが）。
+
+仮に $\bm{y}: (N, m)$ とする。そして、$\bm{t}$ が one-hot のときは、必ず形状が $(N, m)$ で $\bm{y}$ と同じになる。
+これによって \texttt{if t.size == y.size} というように判別できる。
+
+\texttt{t = t.argmax(axis=1)} とすると、$\bm{T} (= \bm{t})$ は $(N, m)$ から $(N, )$ という行ベクトルになる。そしてその各要素には、正解ラベルのインデックス（1が格納されている要素番号）が入る。
+\end{mynote}
+
+$\bm{T}$ の形状が $\bm{Y}$ の形状と等しいとき、$\bm{T}$ は one-hot vector であるとみなして処理を行う。
+
+Returnされるのは、
+\[
+\frac{1}{N} \sum_{k} E_k \quad (\text{ただし } E_k = - \sum_{k} t_{nk} \log y_{nk})
+\]
+つまり、スカラー（次元は $0$）が返る。
+
+\subsection*{逆伝播 (Backpropagation)}
+
+\[
+\text{d}\bm{x} = (\text{self.y} - \text{self.t}) \mathop{/} \text{batch\_size}
+\]
+
+\begin{mynote}{なぜバッチサイズで割る？}
+今採用している交差エントロピー誤差は
+\[
+L = - \frac{1}{N} \sum_{i=1}^N \sum_{k=1}^m t_{ik} \log y_{ik}
+\]
+である。そうすると、前に求めた $\pdv{L}{y_{ij}}$ 等を、この $L$ の場合で再度求めると、
+\[
+\pdv{L}{a_{ij}} = \frac{1}{N} (y_{ij} - t_{ij})
+\]
+になるため。
+\end{mynote}
+
+\newpage
+
+\section{学習に関するテクニック (§6)}
+
+これまでは確率的勾配降下法 (SGD) を用いてきた。
+\[
+\bm{W} \leftarrow \bm{W} - \eta \pdv{L}{\bm{W}}
+\]
+However, there are some problems. Those are below.
+
+\subsection*{SGDのジグザグ問題}
+
+ここから下る時、必ずしも目指す所（最小値）へと一直線になるとは限らない。
+関数の形状が異方性（anisotropic）を持つ場合、勾配の方向が最小値を指さないことがある。
+
+\begin{center}
+\begin{tikzpicture}
+    % 簡易的な等高線の描画
+    \draw[gray, thin] (0,0) ellipse (2 and 1);
+    \draw[gray, thin] (0,0) ellipse (1.5 and 0.75);
+    \draw[gray, thin] (0,0) ellipse (1 and 0.5);
+    \draw[fill=black] (0,0) circle (2pt) node[right] {目指す所};
+    
+    % 軸
+    \draw[->] (-2.5, -1.5) -- (2.5, -1.5);
+    \draw[->] (-2.5, -1.5) -- (-2.5, 1.5);
+
+    % ジグザグパス
+    \draw[->, red, thick] (-2, 1) -- (-1.5, -0.5);
+    \draw[->, red, thick] (-1.5, -0.5) -- (-1, 0.8);
+    \draw[->, red, thick] (-1, 0.8) -- (-0.5, -0.2);
+    \draw[->, red, thick] (-0.5, -0.2) -- (0, 0);
+    
+    \node[red, font=\small] at (-2, 1.3) {ここから下るとき};
+    \node[blue, font=\small] at (-0.5, -0.8) {このように進むかもしれない（非効率）};
+\end{tikzpicture}
+\end{center}
+
+解決策として次の3つがある。
+
+\subsection{Momentum (モーメンタム)}
+物理法則を借りる手法。
+速度 (velocity) $\bm{v}$ という変数を導入。
+$\Rightarrow$ 今まで動いてきた方向（勢い）を保ち（慣性）、新しい勾配の方向に力を加える。
+
+\begin{mynote}{AIからの質問 (Memo)}
+活性化関数を ReLU から Sigmoid にすると、層が深くなっていくと逆伝播な勾配はどうなっていくか？
+$\rightarrow$ Vanished (勾配消失)。パラパラと第6章を読んでいくのが良さそう。
+\end{mynote}
+
+\newpage
+
+\section{Batch Normalization}
+
+Batch Norm レイヤは、$\hat{x}_i \ (i=1, \dots, m)$ に対し、次のような変換をする。
+
+\begin{center}
+\begin{tikzpicture}[node distance=1.5cm, auto,
+    block/.style={rectangle, draw, minimum height=1cm, minimum width=1.5cm},
+    line/.style={-Stealth}]
+
+    \node (in) {入力};
+    \node[block, right=of in] (affine1) {Affine};
+    \node[block, right=of affine1, draw=red, thick, align=center] (bn) {Batch\\Norm};
+    \node[block, right=of bn] (relu) {ReLU};
+    
+    \path[line] (in) -- (affine1);
+    \path[line] (affine1) -- (bn);
+    \path[line] (bn) -- (relu);
+    
+    % Note
+    \node[draw=red, circle, minimum size=3cm] at (bn) {};
+    \node[above=0.5cm of bn, red] {データの分布を正規化するレイヤを挿入};
+\end{tikzpicture}
+\end{center}
+
+\subsection*{順伝播 (Forward)}
+学習を行う際、ミニバッチを単位として、ミニバッチ毎に正規化を行う。
+i.e. データの分布について、平均が $0$、分散が $1$ になるようにする。
+
+\begin{align}
+\mu_B &\leftarrow \frac{1}{m} \sum_{i=1}^m x_i \\
+\sigma_B^2 &\leftarrow \frac{1}{m} \sum_{i=1}^m (x_i - \mu_B)^2 \\
+\hat{x}_i &\leftarrow \frac{x_i - \mu_B}{\sqrt{\sigma_B^2 + \epsilon}} \quad (\epsilon \text{は0除算防止の微小値}) \\
+y_i &\leftarrow \gamma \hat{x}_i + \beta
+\end{align}
+
+$\gamma, \beta$ はパラメータ。学習により調整されていく（初期値：$\gamma=1, \beta=0$）。
+これだけだと、単なる標準化のみになってしまうため、固有のスケール（$\gamma$）とシフト（$\beta$）を与える。
+
+\subsection*{逆伝播 (Backward)}
+
+微分の連鎖律を用いて導出する。
+
+\[
+\pdv{L}{\hat{x}_i} = \pdv{L}{y_i} \cdot \pdv{y_i}{\hat{x}_i} = \pdv{L}{y_i} \cdot \gamma
+\]
+
+ここからが複雑である。$x_1 \sim x_m$ のすべてが各 $\hat{x}_i$ に影響を与えているため、和をとる必要がある箇所に注意。
+
+\begin{definition}{分散に関する微分}
+\[
+\pdv{\sigma_B^2}{x_i} = \frac{2}{m} (x_i - \mu_B)
+\]
+※ ノート内の取り消し線部修正：平均 $\mu_B$ も $x_i$ の関数であるため、厳密にはもう少し複雑だが、ここでは簡略化して記述されている可能性あり。
+\end{definition}
+
+具体的な逆伝播のステップ（ノートの計算過程）：
+
+\begin{align}
+\pdv{\hat{x}_i}{\sigma_B^2} &= (x_i - \mu_B) \cdot \left( -\frac{1}{2} (\sigma_B^2 + \epsilon)^{-3/2} \right) \\
+&= - \frac{x_i - \mu_B}{2 (\sigma_B^2 + \epsilon)\sqrt{\sigma_B^2 + \epsilon}}
+\end{align}
+
+\begin{align}
+\pdv{L}{\sigma_B^2} &= \sum_{i=1}^m \pdv{L}{\hat{x}_i} \pdv{\hat{x}_i}{\sigma_B^2} \\
+&= - \sum_{i=1}^m \left( \pdv{L}{\hat{x}_i} \cdot \frac{x_i - \mu_B}{2(\sigma_B^2 + \epsilon)^{1.5}} \right)
+\end{align}
+
+また、平均 $\mu_B$ に関する微分は、$\hat{x}_i$ からのルートと、$\sigma_B^2$ からのルートの2つがあることに注意。
+
+\[
+\pdv{L}{\mu_B} = \sum_{i=1}^m \pdv{L}{\hat{x}_i} \pdv{\hat{x}_i}{\mu_B} + \pdv{L}{\sigma_B^2} \pdv{\sigma_B^2}{\mu_B}
+\]
+
+最終的に $\pdv{L}{x_i}$ を求めるには、上記の各項を統合する。
+
+\begin{mynote}{計算グラフによる理解}
+計算グラフを書くことで、何が何にどのように影響を与えているかが見えてくる。
+順方向：分散 $\Rightarrow$ 集計。
+逆方向：分配（コピー）。
+\end{mynote}
+
+\newpage
+
+\section{畳み込みニューラルネットワーク (CNN) (§7)}
+
+\subsection*{7.1 全体の構造}
+
+これまでに見たネットワーク（全結合層）:
+\begin{center}
+    \texttt{Affine $\to$ ReLU $\to$ Affine $\to$ ReLU $\to$ ...}
+\end{center}
+
+\textbf{CNN (Convolutional Neural Network):}
+新出レイヤとして「Convolution Layer (畳み込み層)」と「Pooling Layer (プーリング層)」が登場する。
+
+どのようにレイヤを組み合わせるか？
+
+\begin{center}
+\begin{tikzpicture}[
+    node distance=0.8cm,
+    layer/.style={rectangle, draw, minimum height=1.5cm, minimum width=1cm, align=center},
+    conv/.style={layer, pattern=north east lines, pattern color=red!30},
+    pool/.style={layer, pattern=dots, pattern color=blue!30}
+    ]
+
+    \node[layer] (input) {In};
+    \node[conv, right=of input] (conv1) {Conv};
+    \node[layer, right=of conv1] (relu1) {ReLU};
+    \node[pool, right=of relu1] (pool1) {Pool};
+    
+    \node[right=of pool1] (dots) {$\cdots$};
+    
+    \node[conv, right=of dots] (conv2) {Conv};
+    \node[layer, right=of conv2] (relu2) {ReLU};
+    \node[layer, right=of relu2] (affine) {Affine};
+    \node[layer, right=of affine] (relu3) {ReLU};
+    
+    \draw[->] (input) -- (conv1);
+    \draw[->] (conv1) -- (relu1);
+    \draw[->] (relu1) -- (pool1);
+    \draw[->] (pool1) -- (dots);
+    \draw[->] (dots) -- (conv2);
+    \draw[->] (conv2) -- (relu2);
+    \draw[->] (relu2) -- (affine); % ここから途中（全結合）に戻るイメージ
+    \draw[->] (affine) -- (relu3);
+
+\end{tikzpicture}
+\end{center}
+
+出力に近い層では、これまでの \texttt{Affine $\to$ ReLU} の形に戻るのが一般的。
+\end{document}
