@@ -21,6 +21,7 @@ def im2col(input_data, filter_h, filter_w, stride=1, pad=0):
     img = np.pad(input_data, [(0,0), (0,0), (pad, pad), (pad, pad)], 'constant')
     col = np.zeros((N, C, filter_h, filter_w, out_h, out_w))
 
+    # 各フィルターの要素（マス目）を二つのfor文で走らせる。
     for y in range(filter_h):
         y_max = y + stride*out_h
         for x in range(filter_w):
