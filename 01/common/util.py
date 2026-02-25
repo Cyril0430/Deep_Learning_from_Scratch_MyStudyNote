@@ -27,13 +27,26 @@ def im2col(input_data, filter_h, filter_w, stride=1, pad=0):
         y_max = y + stride*out_h
         for x in range(filter_w):
             x_max = x + stride*out_w
+            # col[N, C, filter_h, filer_w, out_h, out_w]
+            # img[N, C, padded_H, padded_W]
             col[:, :, y, x, :, :] = img[:, :, y:y_max:stride, x:x_max:stride]
+            # i.e.> フィルターの`(y, x)`成分が各ステップで相手となる入力画像の各要素（`y:y_max:stride, x:x_max:stride`で指定）を取得する
 
     # colの場合、（transposeした後）reshapeメソッドはcol[0, 0, 0, 0, 0, 1]から順に並べていき、その並べたものから順にピックアップしていくことで、reshapeで指定した形状の配列を生成する。
     # 今回は、colの第1, 2, 3次元目をすべて1行（横向き）にフラット化したもの縦に重ねていく。
     col = col.transpose(0, 4, 5, 1, 2, 3).reshape(N*out_h*out_w, -1)
     return col
     # col.transpose(N, out_h, out_w, channel, filter_h, filter_w)
+    # `(N, out_h, out_w, C, filter_h, filter_w)`という形状になる。
+
+    # 各行、最初にfilter_wの情報が格納されていく（整形されていく）。
+    # 格納されるイメージは次の通り↓。
+    # i.e.> 「最初は0個目のデータにおける出力画像の`(0, 0)`のピクセルにおける積和演算について、フィルターの0行目の0列目のデータから1列目、2列目、...、filter_w列目までが、整形後の`col`を行方向に、順に格納されていく。」
+    # > 「そうしたら、filter_h = 0におけるfilter_wが最後まで行ったから、filter_h = 1に繰り上がり、再度各列が続きから格納されていく。」
+    # > つまりは、かけ算の意味の定義（掛けられる数 * 掛ける数）のイメージで整形後の`col`の各行（各行の要素数はC*filter_h*filter_w）が出来上がっていく。
+    # > `filter_w`分のセットが`filter_h`だけあり、さらにそれが`C`個あるようなイメージ。`C`個の箱の中に、さらに`filter_h`個の箱があり、それらの箱の中にはそれぞれ`filter_w`個のケーキが入っているようなこと。
+
+    # なんか、この操作って足し算の繰り上がりみたいだね。
 
 
 def col2im(col, input_shape, filter_h, filter_w, stride=1, pad=0):
@@ -52,10 +65,13 @@ def col2im(col, input_shape, filter_h, filter_w, stride=1, pad=0):
     -------
 
     """
-    N, C, H, W = input_shape
+    N, C, H, W = input_shape    # 入力画像の形状を記憶（データ数、チャンネル数、高さ、幅）
     out_h = (H + 2*pad - filter_h)//stride + 1
     out_w = (W + 2*pad - filter_w)//stride + 1
-    col = col.reshape(N, out_h, out_w, C, filter_h, filter_w).transpose(0, 3, 4, 5, 1, 2)
+    col = col.reshape(N, out_h, out_w, C, filter_h, filter_w).transpose(0, 3, 4, 5, 1, 2)   # 入力されてきたcol(形状が`(N*out_h*out_w, C*FN(=C*FH*FW))`)を`(N, out_h, out_w, C, filter_h, filter_w)`という形状に整え、`transpose`によって、im2colの`col`の定義と同様の形状にする。
+    # col2imの引数`col`が想定しているのは、二次元にreshapeする前の`col`であることに注意。
+
+    # 次回はここ（↓）から（2026-02-25）
 
     img = np.zeros((N, C, H + 2*pad + stride - 1, W + 2*pad + stride - 1))
     for y in range(filter_h):
