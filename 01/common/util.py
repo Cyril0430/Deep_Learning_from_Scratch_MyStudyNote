@@ -33,7 +33,7 @@ def im2col(input_data, filter_h, filter_w, stride=1, pad=0):
     # 今回は、colの第1, 2, 3次元目をすべて1行（横向き）にフラット化したもの縦に重ねていく。
     col = col.transpose(0, 4, 5, 1, 2, 3).reshape(N*out_h*out_w, -1)
     return col
-    # col.transpose(N, out_h, out_w, channel, H, W)
+    # col.transpose(N, out_h, out_w, channel, filter_h, filter_w)
 
 
 def col2im(col, input_shape, filter_h, filter_w, stride=1, pad=0):
