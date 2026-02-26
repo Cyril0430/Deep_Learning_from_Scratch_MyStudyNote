@@ -35,3 +35,5 @@ class Convolution:
         # `.transpose(0, 3, 1, 2)`をすると、outの並びは`(N, FN, out_h, out_w)`となる。
 
         return out
+
+    # def backward(self, out):

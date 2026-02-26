@@ -81,11 +81,13 @@ def col2im(col, input_shape, filter_h, filter_w, stride=1, pad=0):
 
     # 次回はここ（↓）から（2026-02-25）
 
-    img = np.zeros((N, C, H + 2*pad + stride - 1, W + 2*pad + stride - 1))
+    img = np.zeros((N, C, H + 2*pad + stride - 1, W + 2*pad + stride - 1))  # `+ stride - 1`をしているのは、yからy_max（y_max - 1）までのインデックスに値を代入するとき、`y_max`がとりうる最大値が`H + 2*pad + stride - 1`で抑えられる。そのため`H + 2*pad`という、本来の画像サイズに`stride - 1`を足すことで、バッファを作ることができる。
+
+    # ↓次回はfor文の理解から
     for y in range(filter_h):
         y_max = y + stride*out_h
         for x in range(filter_w):
             x_max = x + stride*out_w
             img[:, :, y:y_max:stride, x:x_max:stride] += col[:, :, y, x, :, :]
 
-    return img[:, :, pad:H + pad, pad:W + pad]
+    return img[:, :, pad:H + pad, pad:W + pad]  # 先ほど作ったバッファを、パディングとともに削るために「`pad:H+pad`」をする。そうすると、その要素数は`H - pad + pad = H`となり、もとの画像の高さ（幅も同様）になる。さらに、`pad`から始めることで、パディングの分も削ることができる。疑心暗鬼になったら具体例やこのスライス操作をイメージせよ。
