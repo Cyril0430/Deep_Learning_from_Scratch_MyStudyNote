@@ -10,6 +10,15 @@ class Convolution:
         self.b = b
         self.stride = stride
         self.pad = pad
+
+        # 中間データ(backward時に使用)
+        self.x = None
+        self.col = None
+        self.col_W = None
+
+        # 重み・バイアスパラメータの勾配
+        self.dW = None
+        self.db = None
     
     def forward(self, x):
         FN, C, FH, FW = self.W.shape
@@ -19,7 +28,7 @@ class Convolution:
 
         col = im2col(x, FH, FW, self.stride, self.pad)  # `col`の形状は(N*out_h*out_w, C*FH*FW)
         col_W = self.W.reshape(FN, -1).T  # フィルターの展開
-        out = np.dot(col, col_W) + self.b   # `(N*out_h*out_w, FN(=FH*FW))`
+        out = np.dot(col, col_W) + self.b   # `(N*out_h*out_w, FN)`
 
         out = out.reshape(N, out_h, out_w, -1).transpose(0, 3, 1, 2)
         # out.reshape(N, out_h, out_w, -1)までは、次のような処理がされているイメージ↓
@@ -34,6 +43,32 @@ class Convolution:
 
         # `.transpose(0, 3, 1, 2)`をすると、outの並びは`(N, FN, out_h, out_w)`となる。
 
+        self.x = x
+        self.col = col  # (N*out_h*out_w, C*FH*FW)
+        self.col_W = col_W  # (C*FH*FW, FN)
+
         return out
 
-    # def backward(self, out):
+    def backward(self, dout):
+        """
+        dout: 上流から伝わってきた勾配（N, FN, out_h, out_w）
+        """
+        FN, C, FH, FW = self.W.shape
+
+        # 1. doutの形状を2次元配列に戻す（順伝播の最後の`reshape`&`transpose`の逆再生）
+        dout = dout.transpose(0, 2, 3, 1).reshape(-1, FN)
+
+        # 2. バイアス`b`の勾配
+        self.db = np.sum(dout, axis=0)
+
+        # 3. 重み`W`の勾配（im2colの出力（col）の転置と上流から伝わってきた勾配を`(N*out_h*out_w, FN)`の形状にしたものの行列積で求める）
+        self.dW = np.dot(self.col.T, dout)  # (C*FH*FW, N*out_h*out_w) dot (N*out_h*out_w, FN) -> (C*FH*FW, FN)
+        self.dW = self.dW.transpose(1, 0).reshape(FN, C, FH, FW)
+
+        # 4. 入力 x のパッチ空間での勾配（dcol）
+        dcol = np.dot(dout, self.col_W.T)
+
+        # 5. dcolを元の画像空間 dx に復元する（ここで col2im が用いられる）
+        dx = col2im(dcol, self.x.shape, FH, FW, self.stride, self.pad)
+
+        return dx

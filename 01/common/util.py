@@ -83,11 +83,16 @@ def col2im(col, input_shape, filter_h, filter_w, stride=1, pad=0):
 
     img = np.zeros((N, C, H + 2*pad + stride - 1, W + 2*pad + stride - 1))  # `+ stride - 1`をしているのは、yからy_max（y_max - 1）までのインデックスに値を代入するとき、`y_max`がとりうる最大値が`H + 2*pad + stride - 1`で抑えられる。そのため`H + 2*pad`という、本来の画像サイズに`stride - 1`を足すことで、バッファを作ることができる。
 
-    # ↓次回はfor文の理解から
     for y in range(filter_h):
         y_max = y + stride*out_h
         for x in range(filter_w):
             x_max = x + stride*out_w
             img[:, :, y:y_max:stride, x:x_max:stride] += col[:, :, y, x, :, :]
+            # imgとcolの各次元の意味
+            # img[データ数, チャンネル数, 画像の高さ（拡張）, 画像の幅（拡張）]
+            # col[データ数, チャンネル数, フィルターの高さ, フィルターの幅, 出力画像の高さ, 出力画像の幅]
+
+    # imgによって生成したすべて白紙（0）の画像の4次元配列（データ数は N、チャンネルが C で、高さと幅はパディングと安全バッファを含んだ最大サイズ）の、任意のデータ数の任意のチャンネルの高さの次元において、stride間隔で y から y_max の手前までの要素（幅についても同様）に対し、6次元配列colの任意のデータ数の任意のチャンネルにおける (y, x) 番目のフィルターと対応している出力画像の任意の要素が加算される（足し込まれる）
+
 
     return img[:, :, pad:H + pad, pad:W + pad]  # 先ほど作ったバッファを、パディングとともに削るために「`pad:H+pad`」をする。そうすると、その要素数は`H - pad + pad = H`となり、もとの画像の高さ（幅も同様）になる。さらに、`pad`から始めることで、パディングの分も削ることができる。疑心暗鬼になったら具体例やこのスライス操作をイメージせよ。
