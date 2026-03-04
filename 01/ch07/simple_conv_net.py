@@ -63,7 +63,7 @@ class SimpleConvNet:
     
     def predict(self, x):
         for layer in self.layers.values():
-            x = layer.forward()
+            x = layer.forward(x)
         return x
     
     def loss(self, x, t):
