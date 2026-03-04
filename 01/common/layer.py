@@ -127,8 +127,14 @@ class SoftmaxWithLoss:
     
     def backward(self, dout = 1):   # なるほど、既定値を1にしておくのね。柔軟な対応が可能になるのか。
         batch_size = self.t.shape[0]        # バッチサイズを保存（コメントアウトの例だとbatch_sizeは「N」になる。
-        dx = (self.y - self.t) / batch_size # なんでバッチサイズで割るの？
+        if self.t.size == self.y.size:  # 教師データがone_hot_vectorの場合
+            dx = (self.y - self.t) / batch_size # なんでバッチサイズで割るの？
                                             # →ここで用いた交差エントロピー誤差が「誤差の総和をバッチサイズの分だけ割る」ことで定義されていたため、`self.y - self.t`は「誤差の総和」になってしまう。そこでその誤差の総和をバッチサイズで割ることで、順伝播だけでなく逆伝播においても総和の誤差勾配の平均を伝えることになり、数学的に等価になる。
+        else:
+            dx = self.y.copy()
+            # この勾配はone-hot表記のとき、`y_i - t_i`と計算された。そして`t_i`は、正解ラベルのときは`1`をとる。つまり↓で1を引いているのは、正解ラベルのみで、これによって勾配計算を簡潔させているということだ。
+            dx[np.arange(batch_size), self.t] -= 1
+            dx = dx / batch_size
 
         return dx
 
