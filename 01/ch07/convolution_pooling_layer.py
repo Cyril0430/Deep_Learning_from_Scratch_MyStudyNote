@@ -80,13 +80,52 @@ class Pooling:
         self.stride = stride
         self.pad = pad
 
+        self.x = None
+        # self.dW = None
+        # self.db = None
+        self.col_argmax = None
+        self.col = None
+
     def forward(self, x):
+        self.x = x
         N, C, H, W = x.shape
         out_h = int(1 + (H - self.pool_h) / self.stride)
         out_w = int(1 + (W - self.pool_w) / self.stride)
 
         # 展開 (1)
-
-        # ↓このコードの吟味から（処理の流れを思い浮かべよう）
         col = im2col(x, self.pool_h, self.pool_w, self.stride, self.pad)    # col: (N*padded_out_h*padded_out_w, C*self.pool_h*self.pool_w)
         col = col.reshape(-1, self.pool_h*self.pool_w)  # (N*padded_out_h*padded_out_w*C, self.pool_h*self.pool_w)
+
+        self.col = col.copy()
+        # self.col_argmax = np.argmax(col, axis=1)  # Maxをとる前のcolの最大値の場所の情報を保持
+        self.col_argmax = np.argmax(col, axis=1, keepdims=True) # (N*out_h*out_w*C, 1)
+
+        # 最大値 (2)
+        out = np.max(col, axis=1) # (N*out_h*out_w*C,) outはpadded_outと同じ
+        # 整形 (3)
+        out = out.reshape(N, out_h, out_w, C).transpose(0, 3, 1, 2)
+
+        return out
+    
+    def backward(self, dout):
+        """
+        dout: (N, C, out_h, out_w)の形状のNumPy配列
+        """
+        N, C, H, W = self.x.shape
+        dout = dout.transpose(0, 2, 3, 1).reshape(-1, 1)    # (N*out_h*out_w*C, 1)
+
+        # mask = \
+            # (np.arange(self.col.shape[1]).reshape([1 if i != 1 else self.col.shape[1] for i in range(self.col.ndim)]) == self.col_argmax).astype(int) # このリスト内法表記は`C:\Users\Cyril\.vscode\Life_Tasks\01_Ideas_and_Memos\2026-03-01\deep_learning_from_scratch_1.md`にて解説している。
+        
+        # 上の代替案
+        mask = (np.arange(self.pool_h*self.pool_w).reshape(1, -1) == self.col_argmax).astype(int) # (1, self.pool_h*self.pool_w)と(N*out_h*out_w*C, 1)でブロードキャストするので(N*out_h*out_w*C, self.pool_h*self.pool_w)という形状になる。
+
+        dmax = dout * mask  # (N*out_h*out_w*C, self.pool_h*self.pool_w)
+        # 順伝播のときに最大値を取った位置（`mask`が`1`の場所）に、上流から流れてきた勾配`dout`をそのまま流し（配置し）、それ以外の位置には`0`を流す。
+        # この演算によってdoutは(N*out_h*out_w*C, self.pool_h*self.pool_w)という形状にブロードキャストされる。
+        # だから、この計算によって最大値を求める計算の逆伝播を求めることができる。
+
+        dmax = dmax.reshape(-1, C*self.pool_h*self.pool_w)   # col2im()の第一引数は(N*out_h*out_w, C*self.pool_h*self.pool_w)であるので、それにreshapeする。
+        dx = col2im(dmax, self.x.shape, self.pool_h, self.pool_w, stride = self.stride, pad = self.pad)
+
+        return dx
