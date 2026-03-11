@@ -66,6 +66,19 @@ class GridWorld:
     def reward(self, state, action, next_state):    # 報酬関数を表すメソッド
         return self.reward_map[next_state]  # この本では報酬関数を決定論的なものとみなしているので、報酬をそのまま返す。しかし今回は状態遷移が決定論的であるため、次の状態のみによって報酬を決定している点に注意。
     
+    def reset(self):    # エージェントの位置をリセットするメソッド
+        self.agent_state = self.start_state
+        return self.agent_state
+    
+    def step(self, action): # エージェントの行動によって時間を一つ進めるようなメソッド
+        state = self.agent_state
+        next_state = self.next_state(state, action)
+        reward = self.reward(state, action, next_state)
+        done = (next_state == self.goal_state)
+
+        self.agent_state = next_state
+        return next_state, reward, done
+    
     # 次の関数はグリッドを可視化するものであり、メソッドの定義の中身はあまり重要ではない
     def render_v(self, v=None, policy=None, print_value=True):
         renderer = render_helper.Renderer(self.reward_map, self.goal_state,
