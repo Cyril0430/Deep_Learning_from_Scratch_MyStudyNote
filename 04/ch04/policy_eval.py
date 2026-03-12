@@ -26,7 +26,7 @@ def eval_onestep(pi, V, env, gamma=0.9):
         for action, action_prob in action_probs.items():
             next_state = env.next_state(state, action)
             r = env.reward(state, action, next_state)
-            # 4. 新しい価値関数（次の状態の価値関数から現在の状態の価値関数をもとめる）
+            # 4. 新しい価値関数（次の状態の価値関数から現在の状態の価値関数をもとめる）（下の更新式はベルマン方程式に他ならない）
             # V[next_state]が次の状態の価値関数である。
             new_V += action_prob * (r + gamma * V[next_state])
             # 最初の`new_V = 0`を消して`new_V = action_prob * (r + gamma * V[next_state])`とするのはダメなのか？
@@ -39,17 +39,17 @@ def eval_onestep(pi, V, env, gamma=0.9):
 def policy_eval(pi, V, env, gamma, threshold=0.0001):
     while True:
         old_V = V.copy()    # 更新前の価値関数
-        V = eval_onestep(pi, V, env, gamma)
+        V = eval_onestep(pi, V, env, gamma)     # 価値関数の更新（反復方策評価ワンステップ分）
 
         # 更新された量の最大値を決める
         delta = 0
         for state in V.keys():
             t = abs(V[state] - old_V[state])    # `state`キーに格納されている価値関数の変化量を`t`としている。
-            if delta < t:
-                delta = t
+            if delta < t:   # 更新された値（価値関数の変化量）が`delta`よりも大きい場合、
+                delta = t   # `delta`に`t`の値を代入（更新）する。
         
         # 閾値との比較
-        if delta < threshold:
-            break
+        if delta < threshold:   # 閾値よりも`delta`（価値関数の変化量が最大であるもの）が小さい場合（超えない場合）、
+            break               # 無限ループを抜け、処理を終える。
     
     return V
