@@ -37,7 +37,7 @@ class GridWorld:
     def shape(self):
         return self.reward_map.shape    # self.reward_mapの形状（`(3, 4)`）
     
-    def action(self):   # 全ての行動にアクセス
+    def actions(self):   # 全ての行動にアクセス
         return self.action_space    # [0, 1, 2, 3]
     
     def states(self):   # 全ての状態にアクセス（一回の処理毎に出力する）
