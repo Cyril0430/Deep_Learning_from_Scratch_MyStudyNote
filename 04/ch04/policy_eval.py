@@ -4,7 +4,7 @@ sys.path.append(os.pardir)
 from common.gridworld import GridWorld
 
 def eval_onestep(pi, V, env, gamma=0.9):
-    """反復方策評価のワンステップの更新のみを行う
+    """反復方策評価（状態価値関数をワンステップだけ更新する）を行う
     
     params:
 
@@ -37,6 +37,16 @@ def eval_onestep(pi, V, env, gamma=0.9):
     return V
 
 def policy_eval(pi, V, env, gamma, threshold=0.0001):
+    """反復方策評価を行うメソッド
+    
+    params: 
+
+    pi: 確率的方策
+    V: 状態価値関数
+    env: 環境
+    gamma: 割引率
+    threshold: 方策評価を行うときの更新をストップするための閾値
+    """
     while True:
         old_V = V.copy()    # 更新前の価値関数
         V = eval_onestep(pi, V, env, gamma)     # 価値関数の更新（反復方策評価ワンステップ分）
