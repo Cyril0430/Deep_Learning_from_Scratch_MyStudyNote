@@ -19,6 +19,7 @@ class TdAgent:
     
     def eval(self, state, reward, next_state, done):
         next_V = 0 if done else self.V[next_state]  # ゴールの価値関数は0（価値関数は将来得られる報酬の割引率付きの総和である。ゴールにおける価値関数は、その先には何も無いので、常に0になる。
+        # done == Trueならnext_V = 0、done != Trueならnext_V = self.V[next_state]となる。
         target = reward + self.gamma * next_V
 
         self.V[state] += (target - self.V[state]) * self.alpha
