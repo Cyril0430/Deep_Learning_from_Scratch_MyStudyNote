@@ -1,3 +1,6 @@
+import sys, os
+sys.path.append(os.pardir)
+
 from collections import defaultdict, deque
 import numpy as np
 from common.utils import greedy_probs
