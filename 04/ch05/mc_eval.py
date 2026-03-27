@@ -42,7 +42,7 @@ def pre_greedy_probs(Q, state, action_size=4):
     action_probs[max_action] = 1
     return action_probs
 
-def greedy_probs(Q, state, epsilon=0, action_size=4):
+def greedy_probs(Q, state, epsilon=0, action_size=4):   # 同じコードが`04/common/utils.py`にも存在する。
     qs = [Q[(state, action)] for action in range(action_size)]
     max_action = np.argmax(qs)
 
