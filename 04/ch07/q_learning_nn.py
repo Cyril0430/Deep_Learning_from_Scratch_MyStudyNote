@@ -6,6 +6,7 @@ from dezero import optimizers
 import dezero.functions as F
 import dezero.layers as L
 from common.gridworld import GridWorld
+import matplotlib.pyplot as plt
 
 def one_hot(state):
     HEIGHT, WIDTH = 3, 4
@@ -62,3 +63,29 @@ class QLearningAgent:
         self.optimizer.update() # オプティマイザを適用し、勾配によって重みパラメータとバイアスを更新。
 
         return loss.data    # アップデートした後の損失関数の値を出力する。
+
+# ===== エージェントを動かす ===== #
+# env = GridWorld()
+# agent = QLearningAgent()
+
+# episodes = 1000 # エピソード数
+# loss_history = []
+
+# for episode in range(episodes):
+#     state = env.reset()
+#     state = one_hot(state)
+#     total_loss, cnt = 0, 0
+#     done = False
+
+#     while not done:
+#         action = agent.get_action(state)
+#         next_state, reward, done = env.step(action)
+#         next_state = one_hot(next_state)
+
+#         loss = agent.update(state, action, reward, next_state, done)
+#         total_loss += loss
+#         cnt += 1
+#         state = next_state
+    
+#     average_loss = total_loss / cnt
+#     loss_history.append(average_loss)
