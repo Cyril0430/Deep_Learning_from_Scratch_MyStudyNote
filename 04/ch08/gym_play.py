@@ -1,10 +1,10 @@
 import numpy as np
 # import gym
-import gymnasium
+import gymnasium as gym
 
 # env = gym.make("CartPole-v1", render_mode="rgb_array")
-env = gymnasium.make("CartPole-v1", render_mode="rgb_array")
-state = env.reset()
+env = gym.make("CartPole-v1", render_mode="human")
+state, info = env.reset()
 done = False
 
 while not done:
