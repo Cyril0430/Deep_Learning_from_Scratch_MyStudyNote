@@ -25,3 +25,34 @@ class ReplayBuffer:
         next_state = np.stack([x[3] for x in data])
         done = np.array([x[4] for x in data]).astype(int)
         return state, action, reward, next_state, done
+
+import gymnasium as gym
+
+env = gym.make("CartPole-v1", render_mode="human")
+replay_buffer = ReplayBuffer(buffer_size=10000, batch_size=32)
+
+for episode in range(10):
+    state, info = env.reset()
+    done = False
+
+    while not done:
+        # action = 0    # action を 0 、つまり左向きへと常に行動する
+        if random.random() < 0.5:
+            action = 0
+        else:
+            action = 1
+        next_state, reward, terminated, truncated, info = env.step(action)
+        done = terminated or truncated
+        replay_buffer.add(state, action, reward, next_state, done)
+        state = next_state
+
+state, action, reward, next_state, done = replay_buffer.get_batch()
+print("\n=== バッファーの各形状 ===\n")
+print(f"state の形状: {state.shape}")   # (32, 4)
+print(f"action の形状: {action.shape}") # (32,)
+print(f"reward の形状: {reward.shape}") # (32,)
+print(f"next_state の形状: {next_state.shape}") # (32, 4)
+print(f"done の形状: {done.shape}\n") # (32,)
+
+true_count = sum([x[4] for x in replay_buffer.buffer])
+print(f"実施した done のうち、True の数: {true_count}")
